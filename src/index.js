@@ -8,6 +8,7 @@ const resourceRoutes = require("./routes/resource.routes");
 const aiRoutes = require("./routes/ai.routes");
 const homeRoutes = require("./routes/home.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const studyPlanRoutes = require("./routes/studyPlan.routes");
 
 const { connectDB } = require("./config/db");
 
@@ -26,6 +27,7 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/study-plans", studyPlanRoutes);
 
 // Global Error Handler Middleware
 const errorHandler = require("./middleware/errorHandler");

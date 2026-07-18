@@ -34,14 +34,18 @@ const createResource = async (req, res, next) => {
 // Get all resources
 const getResources = async (req, res, next) => {
   try {
-    const { title, category, level, page = 1, limit = 10 } = req.query;
+    const { search, category, level, page = 1, limit = 10 } = req.query;
 
     const query = {};
 
-    if (title) {
-      // Escape regex characters to prevent ReDoS (Regex Denial of Service)
-      const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      query.title = { $regex: escapedTitle, $options: "i" };
+    if (search) {
+      // Escape regex characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Search in both title and shortDescription
+      query.$or = [
+        { title: { $regex: escapedSearch, $options: "i" } },
+        { shortDescription: { $regex: escapedSearch, $options: "i" } },
+      ];
     }
     
     if (category) {
@@ -121,9 +125,82 @@ const deleteResource = async (req, res, next) => {
   }
 };
 
+// Update resource by ID
+const updateResource = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid resource ID format" });
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "No update data provided" });
+    }
+
+    // Prevent updating immutable fields
+    delete updateData._id;
+    delete updateData.createdAt;
+    
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date();
+
+    const result = await db.collection(collectionName).findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+
+    res.status(200).json({
+      message: "Resource updated successfully",
+      resource: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get related resources by category
+const getRelatedResources = async (req, res, next) => {
+  try {
+    const { category } = req.params;
+    const { excludeId, limit = 4 } = req.query;
+
+    if (!category) {
+      return res.status(400).json({ error: "Category is required" });
+    }
+
+    const query = { category };
+    
+    if (excludeId && ObjectId.isValid(excludeId)) {
+      query._id = { $ne: new ObjectId(excludeId) };
+    }
+
+    const limitNum = Math.max(1, parseInt(limit, 10) || 4);
+
+    const relatedResources = await db
+      .collection(collectionName)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .toArray();
+
+    res.status(200).json(relatedResources);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createResource,
   getResources,
   getResourceById,
   deleteResource,
+  updateResource,
+  getRelatedResources,
 };
