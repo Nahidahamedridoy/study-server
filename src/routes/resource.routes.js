@@ -2,6 +2,7 @@ const express = require("express");
 const {
   createResource,
   getResources,
+  getMyResources,
   getResourceById,
   deleteResource,
   updateResource,
@@ -13,9 +14,10 @@ const router = express.Router();
 
 router.post("/", validateResourceCreation, createResource);
 router.get("/", getResources);
+router.get("/my", getMyResources);
 router.get("/related/:category", getRelatedResources);
 router.get("/:id", getResourceById);
-router.patch("/:id", updateResource);
+router.put("/:id", updateResource);
 router.delete("/:id", deleteResource);
 
 module.exports = router;

@@ -196,9 +196,47 @@ const getRelatedResources = async (req, res, next) => {
   }
 };
 
+// Get my resources
+const getMyResources = async (req, res, next) => {
+  try {
+    const { createdBy, page = 1, limit = 10 } = req.query;
+
+    if (!createdBy) {
+      return res.status(400).json({ error: "createdBy is required" });
+    }
+
+    const query = { createdBy };
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const resources = await db
+      .collection(collectionName)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .toArray();
+
+    const totalResources = await db.collection(collectionName).countDocuments(query);
+    const totalPages = Math.ceil(totalResources / limitNum);
+
+    res.status(200).json({
+      resources,
+      totalResources,
+      totalPages,
+      currentPage: pageNum,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createResource,
   getResources,
+  getMyResources,
   getResourceById,
   deleteResource,
   updateResource,
