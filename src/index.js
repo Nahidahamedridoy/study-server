@@ -14,9 +14,17 @@ const { connectDB } = require("./config/db");
 
 const app = express();
 
-app.use(cors());
+// CORS
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
+// Root Route
 app.get("/", (req, res) => {
   res.send("🚀 StudyMate AI Server Running");
 });
@@ -29,18 +37,22 @@ app.use("/api/home", homeRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/study-plans", studyPlanRoutes);
 
-// Global Error Handler Middleware
+// Global Error Handler
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  await connectDB();
+  try {
+    await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-  });
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+  }
 }
 
 startServer();
